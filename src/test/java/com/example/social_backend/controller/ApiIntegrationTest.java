@@ -97,11 +97,13 @@ class ApiIntegrationTest {
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.userId", notNullValue()))
-        .andExpect(jsonPath("$.phoneNumber", is("9876543210")))
-        .andExpect(jsonPath("$.userName", is("新用戶")))
-        .andExpect(jsonPath("$.email", is("new@example.com")))
-        .andExpect(jsonPath("$.password").doesNotExist()); // 密碼不應該在響應中返回
+        .andExpect(jsonPath("$.data.userId", notNullValue()))
+        .andExpect(jsonPath("$.data.phoneNumber", is("9876543210")))
+        .andExpect(jsonPath("$.data.userName", is("新用戶")))
+        .andExpect(jsonPath("$.data.email", is("new@example.com")))
+        .andExpect(jsonPath("$.data.password").doesNotExist()) // 密碼不應該在響應中返回
+        .andExpect(jsonPath("$.success", is(true)))
+        .andExpect(jsonPath("$.message", is("使用者註冊成功")));
   }
 
   @Test
@@ -179,7 +181,7 @@ class ApiIntegrationTest {
     mockMvc.perform(post("/api/posts")
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isUnauthorized());
+        .andExpect(status().isForbidden());
   }
 
   @Test
@@ -251,11 +253,13 @@ class ApiIntegrationTest {
         .content(objectMapper.writeValueAsString(postRequest2)))
         .andExpect(status().isCreated());
 
-    // 獲取所有發文
-    mockMvc.perform(get("/api/posts"))
+    // 測試獲取所有發文
+    mockMvc.perform(get("/api/posts")
+        .header("Authorization", "Bearer " + testUserToken))
         .andExpect(status().isOk())
+        .andExpect(jsonPath("$", isA(java.util.List.class)))
         .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(2))))
-        .andExpect(jsonPath("$[0].content", notNullValue()))
-        .andExpect(jsonPath("$[1].content", notNullValue()));
+        .andExpect(jsonPath("$[0].content", anyOf(is("測試發文1"), is("測試發文2"))))
+        .andExpect(jsonPath("$[1].content", anyOf(is("測試發文1"), is("測試發文2"))));
   }
 }
