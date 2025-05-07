@@ -1,6 +1,6 @@
 -- 插入測試使用者（密碼使用 BCrypt 加密）
 INSERT INTO User (PhoneNumber, UserName, Password, Email, Biography)
-VALUES ('1234567890', 'TestUser', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', 'test@example.com', '這是一個測試帳號');
+VALUES ('1234567890', 'TestUser', '$2a$10$hiuQZHsOQzgIGF/oJaOX9uNkPWe7fL8nF5VYYR6UGkukQ5MxBLHta', 'test@example.com', '這是一個測試帳號');
 
 -- 插入測試發文
 INSERT INTO Post (UserID, Content, CreatedAt)
