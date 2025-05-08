@@ -35,7 +35,10 @@ export default {
     
     // 每次路由變化時都檢查令牌有效性和登入狀態
     this.$router.beforeEach((to, from, next) => {
-      this.checkTokenValidity();
+      // 只有當不是前往登入或註冊頁面時才檢查令牌有效性
+      if (to.path !== '/login' && to.path !== '/register') {
+        this.checkTokenValidity();
+      }
       this.checkLoginStatus();
       next();
     });
@@ -58,20 +61,26 @@ export default {
       }
     },
     async checkTokenValidity() {
+      // 只有當用戶已登入（有令牌）時才進行驗證
       if (AuthService.isLoggedIn()) {
-        const isValid = await AuthService.validateToken();
-        if (!isValid) {
-          this.tokenValidationMessage = '您的登入已過期，請重新登入';
-          this.isError = true;
-          // 自動重定向到登入頁面
-          setTimeout(() => {
-            this.tokenValidationMessage = '';
-            if (this.$route.path !== '/login') {
-              this.$router.push('/login');
-            }
-          }, 3000);
+        try {
+          const isValid = await AuthService.validateToken();
+          if (!isValid) {
+            this.tokenValidationMessage = '您的登入已過期，請重新登入';
+            this.isError = true;
+            // 自動重定向到登入頁面
+            setTimeout(() => {
+              this.tokenValidationMessage = '';
+              if (this.$route.path !== '/login') {
+                this.$router.push('/login');
+              }
+            }, 3000);
+          }
+          this.isLoggedIn = isValid;
+        } catch (error) {
+          console.error('令牌驗證錯誤:', error);
+          this.isLoggedIn = false;
         }
-        this.isLoggedIn = isValid;
       }
     },
     logout() {

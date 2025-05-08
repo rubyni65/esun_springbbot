@@ -71,11 +71,15 @@ const AuthService = {
    * @returns {Promise} 驗證結果
    */
   validateToken() {
+    // 如果沒有令牌，直接返回false
     if (!this.getToken()) {
       return Promise.resolve(false);
     }
 
+    // 設置認證頭部
     this.setAuthHeader();
+
+    // 執行API調用檢查令牌有效性
     return axios.get('/api/validate-token')
       .then(() => {
         return true;
@@ -84,6 +88,8 @@ const AuthService = {
         // 如果令牌無效，清除本地存儲
         if (error.response && error.response.status === 401) {
           this.logout();
+        } else {
+          console.error('令牌驗證請求失敗:', error);
         }
         return false;
       });

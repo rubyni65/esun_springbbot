@@ -48,7 +48,10 @@ public class SecurityConfig {
         // 配置請求授權
         .authorizeHttpRequests()
         // 允許訪問公開API端點
-        .requestMatchers("/api/register", "/api/login").permitAll()
+        .requestMatchers("/api/register", "/api/login", "/api/validate-token").permitAll()
+        // 允許GET方法訪問帖子列表
+        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/posts").permitAll()
+        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/posts/{id}").permitAll()
         // 所有其他請求都需要身份驗證
         .anyRequest().authenticated()
         .and()
