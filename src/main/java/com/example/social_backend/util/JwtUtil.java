@@ -9,9 +9,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Component
@@ -27,6 +29,17 @@ public class JwtUtil {
   // JWT令牌有效期（以毫秒為單位）- 預設24小時
   @Value("${jwt.expiration:86400000}")
   private long jwtExpiration;
+
+  // 實例密鑰，每次應用程序重啟時會更新
+  private final String instanceSecret;
+
+  /**
+   * 構造函數，初始化實例密鑰
+   */
+  public JwtUtil() {
+    // 生成一個隨機的實例密鑰
+    this.instanceSecret = Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes());
+  }
 
   /**
    * 從JWT令牌中提取用戶ID
@@ -134,8 +147,11 @@ public class JwtUtil {
    * @return 簽名密鑰
    */
   private SecretKey getSigningKey() {
-    String secret = (configSecret != null && !configSecret.isEmpty()) ? configSecret : DEFAULT_SECRET;
-    byte[] keyBytes = Decoders.BASE64URL.decode(secret);
+    // 結合配置密鑰和實例密鑰，這樣每次應用重啟時都會產生不同的密鑰
+    String baseSecret = (configSecret != null && !configSecret.isEmpty()) ? configSecret : DEFAULT_SECRET;
+    String combinedSecret = baseSecret + instanceSecret;
+    // 使用標準Base64編碼來處理可能的非URL安全字符
+    byte[] keyBytes = Base64.getEncoder().encode((combinedSecret).getBytes());
     return Keys.hmacShaKeyFor(keyBytes);
   }
 

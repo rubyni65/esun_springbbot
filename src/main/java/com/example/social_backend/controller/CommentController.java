@@ -39,30 +39,37 @@ public class CommentController {
       @RequestBody Map<String, Object> request) {
 
     try {
-      // 驗證令牌
       if (token == null || token.isEmpty() || !token.startsWith("Bearer ")) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未提供有效的認證令牌");
       }
-
       String actualToken = token.substring(7);
-      Long userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      Long userId;
+      try {
+        userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      } catch (RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("認證失敗：" + e.getMessage());
+      }
 
-      // 從請求體中獲取資料
       if (!request.containsKey("postId") || !request.containsKey("content")) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("請求必須包含postId和content");
       }
 
       Long postId = Long.parseLong(request.get("postId").toString());
       String content = request.get("content").toString();
+      if (content == null || content.trim().isEmpty()) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("留言內容不可為空");
+      }
 
-      // 創建留言
       Comment newComment = commentService.createComment(userId, postId, content);
-
       return ResponseEntity.status(HttpStatus.CREATED).body(newComment);
+    } catch (NumberFormatException e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("postId格式不正確");
     } catch (IllegalArgumentException e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     } catch (Exception e) {
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("伺服器內部錯誤: " + e.getMessage());
+      System.err.println("創建留言時發生內部錯誤: " + e.getMessage());
+      e.printStackTrace();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("創建留言時發生內部錯誤，請查看日誌");
     }
   }
 
@@ -93,18 +100,23 @@ public class CommentController {
       @RequestHeader(value = "Authorization", required = false) String token) {
 
     try {
-      // 驗證令牌
       if (token == null || token.isEmpty() || !token.startsWith("Bearer ")) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未提供有效的認證令牌");
       }
-
       String actualToken = token.substring(7);
-      Long userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      Long userId;
+      try {
+        userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      } catch (RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("認證失敗：" + e.getMessage());
+      }
 
       List<Comment> comments = commentService.getCommentsByUserId(userId);
       return ResponseEntity.ok(comments);
     } catch (Exception e) {
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("伺服器內部錯誤: " + e.getMessage());
+      System.err.println("獲取用戶留言時發生內部錯誤: " + e.getMessage());
+      e.printStackTrace();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("獲取用戶留言時發生內部錯誤，請查看日誌");
     }
   }
 }

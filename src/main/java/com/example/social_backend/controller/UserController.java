@@ -5,6 +5,7 @@ import com.example.social_backend.dto.LoginDto;
 import com.example.social_backend.dto.UserRegistrationDto;
 import com.example.social_backend.entity.User;
 import com.example.social_backend.service.UserService;
+import com.example.social_backend.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,10 +25,12 @@ import java.util.Map;
 public class UserController {
 
   private final UserService userService;
+  private final JwtUtil jwtUtil;
 
   @Autowired
-  public UserController(UserService userService) {
+  public UserController(UserService userService, JwtUtil jwtUtil) {
     this.userService = userService;
+    this.jwtUtil = jwtUtil;
   }
 
   /**
@@ -97,6 +102,34 @@ public class UserController {
       // 返回伺服器錯誤響應
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(ApiResponse.error("伺服器內部錯誤: " + e.getMessage()));
+    }
+  }
+
+  /**
+   * 驗證JWT令牌是否有效
+   *
+   * @param token JWT令牌
+   * @return 驗證結果
+   */
+  @GetMapping("/validate-token")
+  public ResponseEntity<?> validateToken(@RequestHeader(value = "Authorization", required = false) String token) {
+    try {
+      if (token == null || token.isEmpty() || !token.startsWith("Bearer ")) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未提供有效的認證令牌");
+      }
+
+      String actualToken = token.substring(7);
+      try {
+        Long userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+        Map<String, Object> response = new HashMap<>();
+        response.put("valid", true);
+        response.put("userId", userId);
+        return ResponseEntity.ok(response);
+      } catch (RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("認證失敗：" + e.getMessage());
+      }
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("伺服器內部錯誤: " + e.getMessage());
     }
   }
 }
