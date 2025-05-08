@@ -125,7 +125,3 @@ social-media-platform/
 - User（使用者）：儲存使用者資料，包含加密的密碼
 - Post（發文）：儲存發文內容和關聯的使用者ID
 - Comment（留言）：儲存留言內容和關聯的發文ID和使用者ID
-
-## 許可證
-
-此項目採用MIT許可證 - 詳情見 [LICENSE](LICENSE) 文件 
