@@ -365,17 +365,17 @@ export default {
       if (this.commentsByPostId[postId] || this.loadingComments[postId]) return;
       
       // 設置加載狀態
-      this.$set(this.loadingComments, postId, true);
+      this.loadingComments[postId] = true;
       
       CommentService.getCommentsByPostId(postId)
         .then(response => {
           // 更新留言列表
-          this.$set(this.commentsByPostId, postId, response.data);
-          this.$set(this.loadingComments, postId, false);
+          this.commentsByPostId[postId] = response.data;
+          this.loadingComments[postId] = false;
         })
         .catch(error => {
           console.error(`加載發文 #${postId} 的留言時出錯:`, error);
-          this.$set(this.loadingComments, postId, false);
+          this.loadingComments[postId] = false;
         });
     },
     
@@ -401,12 +401,12 @@ export default {
         .then(response => {
           // 將新留言添加到列表
           if (!this.commentsByPostId[postId]) {
-            this.$set(this.commentsByPostId, postId, []);
+            this.commentsByPostId[postId] = [];
           }
           this.commentsByPostId[postId].push(response.data);
           
           // 清空留言輸入框
-          this.$set(this.newComments, postId, '');
+          this.newComments[postId] = '';
         })
         .catch(error => {
           alert('發表留言失敗: ' + (error.response?.data || error.message));
