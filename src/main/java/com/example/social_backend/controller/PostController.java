@@ -39,24 +39,30 @@ public class PostController {
       @RequestBody Map<String, String> request) {
 
     try {
-      // 驗證令牌
       if (token == null || token.isEmpty() || !token.startsWith("Bearer ")) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未提供有效的認證令牌");
       }
-
       String actualToken = token.substring(7);
-      Long userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      Long userId;
+      try {
+        userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      } catch (RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("認證失敗：" + e.getMessage());
+      }
 
-      // 從請求體中獲取資料
       String content = request.get("content");
       String image = request.get("image");
-
-      // 創建發文
+      if (content == null || content.trim().isEmpty()) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("發文內容不可為空");
+      }
       Post newPost = postService.createPost(userId, content, image);
-
       return ResponseEntity.status(HttpStatus.CREATED).body(newPost);
-    } catch (Exception e) {
+    } catch (IllegalArgumentException e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    } catch (Exception e) {
+      System.err.println("創建發文時發生內部錯誤: " + e.getMessage());
+      e.printStackTrace();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("創建發文時發生內部錯誤，請查看日誌");
     }
   }
 
@@ -112,27 +118,35 @@ public class PostController {
       @RequestBody Map<String, String> request) {
 
     try {
-      // 驗證令牌
       if (token == null || token.isEmpty() || !token.startsWith("Bearer ")) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未提供有效的認證令牌");
       }
-
       String actualToken = token.substring(7);
-      Long userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      Long userId;
+      try {
+        userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      } catch (RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("認證失敗：" + e.getMessage());
+      }
 
-      // 從請求體中獲取資料
       String content = request.get("content");
       String image = request.get("image");
+      if (content == null || content.trim().isEmpty()) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("發文內容不可為空");
+      }
 
-      // 更新發文
       Post updatedPost = postService.updatePost(userId, postId, content, image);
-
       return ResponseEntity.ok(updatedPost);
     } catch (IllegalArgumentException e) {
       // 用於權限或找不到發文的錯誤
-      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
-    } catch (Exception e) {
+      if (e.getMessage() != null && (e.getMessage().contains("無權") || e.getMessage().contains("not found"))) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+      }
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    } catch (Exception e) {
+      System.err.println("更新發文時發生內部錯誤: " + e.getMessage());
+      e.printStackTrace();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("更新發文時發生內部錯誤，請查看日誌");
     }
   }
 
@@ -149,26 +163,31 @@ public class PostController {
       @PathVariable Long postId) {
 
     try {
-      // 驗證令牌
       if (token == null || token.isEmpty() || !token.startsWith("Bearer ")) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未提供有效的認證令牌");
       }
-
       String actualToken = token.substring(7);
-      Long userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      Long userId;
+      try {
+        userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      } catch (RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("認證失敗：" + e.getMessage());
+      }
 
-      // 刪除發文
       postService.deletePost(userId, postId);
-
       Map<String, String> response = new HashMap<>();
       response.put("message", "發文已成功刪除");
-
       return ResponseEntity.ok(response);
     } catch (IllegalArgumentException e) {
       // 用於權限或找不到發文的錯誤
-      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
-    } catch (Exception e) {
+      if (e.getMessage() != null && (e.getMessage().contains("無權") || e.getMessage().contains("not found"))) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+      }
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    } catch (Exception e) {
+      System.err.println("刪除發文時發生內部錯誤: " + e.getMessage());
+      e.printStackTrace();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("刪除發文時發生內部錯誤，請查看日誌");
     }
   }
 
@@ -185,25 +204,36 @@ public class PostController {
       @RequestBody Map<String, String> request) {
 
     try {
-      // 驗證令牌
       if (token == null || token.isEmpty() || !token.startsWith("Bearer ")) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未提供有效的認證令牌");
       }
-
       String actualToken = token.substring(7);
-      Long userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      Long userId;
+      try {
+        userId = jwtUtil.validateTokenAndGetUserId(actualToken);
+      } catch (RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("認證失敗：" + e.getMessage());
+      }
 
-      // 從請求體中獲取資料
       String postContent = request.get("postContent");
       String postImage = request.get("postImage");
       String commentContent = request.get("commentContent");
 
-      // 使用事務創建發文和留言
-      Map<String, Long> result = postService.createPostAndComment(userId, postContent, postImage, commentContent);
+      if (postContent == null || postContent.trim().isEmpty()) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("發文內容不可為空");
+      }
+      if (commentContent == null || commentContent.trim().isEmpty()) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("留言內容不可為空");
+      }
 
+      Map<String, Long> result = postService.createPostAndComment(userId, postContent, postImage, commentContent);
       return ResponseEntity.status(HttpStatus.CREATED).body(result);
-    } catch (Exception e) {
+    } catch (IllegalArgumentException e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    } catch (Exception e) {
+      System.err.println("創建發文和留言時發生內部錯誤: " + e.getMessage());
+      e.printStackTrace();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("創建發文和留言時發生內部錯誤，請查看日誌");
     }
   }
 }

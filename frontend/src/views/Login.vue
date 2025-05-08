@@ -92,6 +92,9 @@ export default {
           // 設置認證頭部
           AuthService.setAuthHeader();
           
+          // 觸發登入狀態變更事件
+          window.dispatchEvent(new Event('login-state-changed'));
+          
           // 顯示成功消息
           this.successMessage = '登入成功，正在跳轉...';
           

@@ -64,10 +64,42 @@ const AuthService = {
     } else {
       delete axios.defaults.headers.common['Authorization'];
     }
+  },
+
+  /**
+   * 驗證令牌是否有效
+   * @returns {Promise} 驗證結果
+   */
+  validateToken() {
+    if (!this.getToken()) {
+      return Promise.resolve(false);
+    }
+
+    this.setAuthHeader();
+    return axios.get('/api/validate-token')
+      .then(() => {
+        return true;
+      })
+      .catch(error => {
+        // 如果令牌無效，清除本地存儲
+        if (error.response && error.response.status === 401) {
+          this.logout();
+        }
+        return false;
+      });
   }
 };
 
 // 初始化時設置認證頭部
 AuthService.setAuthHeader();
+
+// 初始化時檢查令牌有效性
+if (AuthService.isLoggedIn()) {
+  AuthService.validateToken().then(isValid => {
+    if (!isValid) {
+      console.log('令牌已失效，已自動登出');
+    }
+  });
+}
 
 export default AuthService; 
